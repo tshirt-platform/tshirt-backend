@@ -29,8 +29,6 @@ AWS_REGION=ap-southeast-1
 AWS_ACCESS_KEY_ID=
 AWS_SECRET_ACCESS_KEY=
 S3_BUCKET_NAME=
-PRINT_SHOP_API_URL=https://printshop.example.com/api
-PRINT_SHOP_API_KEY=
 ```
 
 ## Folder Structure
@@ -44,12 +42,13 @@ src/
 │       └── models/
 │           └── print-job.ts             # PrintJob data model
 ├── workflows/
-│   └── send-to-print-shop.ts            # Medusa workflow
+│   └── create-print-job.ts              # Create print job on order placed
 ├── subscribers/
 │   └── order-placed.subscriber.ts       # Triggers on order confirmed
+├── links/
+│   └── print-job-order.ts              # PrintJob ↔ Order link
 └── api/
-    ├── admin/print-orders/              # Custom admin routes
-    └── webhooks/print-shop/             # Receive status from print shop
+    └── admin/print-orders/              # Admin routes for managing print jobs
 ```
 
 ## Medusa v2 Module System
@@ -231,36 +230,29 @@ export default defineMiddlewares({
 })
 ```
 
-## Print Shop Integration
+## Print Order Management
 
-### Webhook Payload (outgoing to print shop)
+Print jobs are managed internally — no external print shop API. Admin downloads design files and handles printing manually.
 
-```ts
-{
-  order_id: string
-  customer: { name: string; phone: string; address: string }
-  items: Array<{
-    shirt_type: "tshirt" | "polo" | "hoodie"
-    shirt_color: string
-    shirt_size: string
-    quantity: number
-    design_png_url: string   // S3 presigned URL — 300 DPI PNG
-    design_json_url: string  // S3 presigned URL — Fabric.js JSON
-    design_side: "front" | "back"
-  }>
-  created_at: string         // ISO 8601
-}
+### Status Flow
+```
+pending → processing → shipped → delivered
+    ↘         ↘
+   cancelled  cancelled
 ```
 
-### Retry Logic
-- Retry failed print shop API calls with exponential backoff
-- Max 3 retries: 1s, 4s, 16s
-- Log failures and update print job status to "failed" after exhausting retries
+### Admin Routes
+| Method | Route | Action |
+|---|---|---|
+| GET | `/admin/print-orders` | List print jobs (paginated) |
+| GET | `/admin/print-orders/:id` | Print job detail |
+| POST | `/admin/print-orders/:id` | Update status |
+| POST | `/admin/print-orders/:id/cancel` | Cancel job |
 
-### Incoming Webhook (from print shop)
-- `POST /webhooks/print-shop` — receives status updates
-- Validate webhook signature/API key
-- Update PrintJob status accordingly
+### Design Files
+- Stored on S3 as presigned URLs (PNG + Fabric.js JSON)
+- Admin downloads files → brings to print shop
+- URLs: `s3://{bucket}/designs/{order_id}/{side}.png`
 
 ## Cross-Repo Dependencies
 - `@tshirt/shared` — shared TypeScript types and constants
