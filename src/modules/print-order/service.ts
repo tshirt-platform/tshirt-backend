@@ -1,7 +1,14 @@
 import { MedusaService } from "@medusajs/framework/utils"
 import PrintJob from "./models/print-job"
 
-const VALID_TRANSITIONS: Record<string, string[]> = {
+type PrintJobStatus =
+  | "pending"
+  | "processing"
+  | "shipped"
+  | "delivered"
+  | "cancelled"
+
+const VALID_TRANSITIONS: Record<PrintJobStatus, PrintJobStatus[]> = {
   pending: ["processing", "cancelled"],
   processing: ["shipped", "cancelled"],
   shipped: ["delivered"],
@@ -20,19 +27,23 @@ class PrintOrderService extends MedusaService({ PrintJob }) {
 
   async updateStatus(
     printJobId: string,
-    status: string,
+    status: PrintJobStatus,
     notes?: string
   ): Promise<void> {
     const job = await this.retrievePrintJob(printJobId)
-    const allowed = VALID_TRANSITIONS[job.status]
-    if (!allowed?.includes(status)) {
+    const currentStatus = job.status as PrintJobStatus
+    const allowed = VALID_TRANSITIONS[currentStatus]
+    if (!allowed.includes(status)) {
       throw new Error(
-        `Cannot transition from "${job.status}" to "${status}"`
+        `Cannot transition from "${currentStatus}" to "${status}"`
       )
     }
-    await this.updatePrintJobs(printJobId, {
-      status,
-      ...(notes !== undefined ? { notes } : {}),
+    await this.updatePrintJobs({
+      selector: { id: printJobId },
+      data: {
+        status,
+        ...(notes !== undefined ? { notes } : {}),
+      },
     })
   }
 
