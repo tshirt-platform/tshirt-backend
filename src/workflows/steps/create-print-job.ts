@@ -14,12 +14,16 @@ type CreatePrintJobOutput = {
   print_job_ids: string[]
 }
 
+type CompensationData = {
+  print_job_ids: string[]
+}
+
 export const createPrintJobStep = createStep(
   "create-print-job",
   async (
     { order_id, items }: CreatePrintJobInput,
     { container }
-  ): Promise<StepResponse<CreatePrintJobOutput, { print_job_ids: string[] }>> => {
+  ): Promise<StepResponse<CreatePrintJobOutput, CompensationData>> => {
     const printOrderService = container.resolve("printOrder")
     const printJobIds: string[] = []
 
@@ -38,10 +42,10 @@ export const createPrintJobStep = createStep(
     )
   },
   // Compensation: cancel all created print jobs on workflow failure
-  async ({ print_job_ids }, { container }) => {
+  async (compensationData: CompensationData, { container }) => {
     const printOrderService = container.resolve("printOrder")
 
-    for (const id of print_job_ids) {
+    for (const id of compensationData.print_job_ids) {
       await printOrderService.cancel(id)
     }
   }

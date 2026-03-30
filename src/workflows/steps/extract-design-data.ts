@@ -1,15 +1,5 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
-type ExtractDesignDataInput = {
-  order: {
-    id: string
-    items: Array<{
-      id: string
-      metadata: Record<string, unknown> | null
-    }>
-  }
-}
-
 type DesignItem = {
   design_png_url: string
   design_json_url: string
@@ -22,10 +12,13 @@ type ExtractDesignDataOutput = {
 
 export const extractDesignDataStep = createStep(
   "extract-design-data",
-  async (
-    { order }: ExtractDesignDataInput
-  ): Promise<StepResponse<ExtractDesignDataOutput>> => {
-    const items: DesignItem[] = order.items.map((item) => {
+  async (input: {
+    order: { id: string; items?: Array<{ id: string; metadata?: Record<string, unknown> | null }> }
+  }): Promise<StepResponse<ExtractDesignDataOutput>> => {
+    const { order } = input
+    const orderItems = order.items ?? []
+
+    const items: DesignItem[] = orderItems.map((item) => {
       const meta = item.metadata
       if (!meta?.design_png_url || !meta?.design_json_url) {
         throw new Error(
