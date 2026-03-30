@@ -11,6 +11,7 @@ import {
 } from "@medusajs/framework/workflows-sdk"
 import {
   createApiKeysWorkflow,
+  createCollectionsWorkflow,
   createInventoryLevelsWorkflow,
   createProductCategoriesWorkflow,
   createProductsWorkflow,
@@ -27,7 +28,7 @@ import {
 } from "@medusajs/medusa/core-flows"
 import { ApiKey } from "../../.medusa/types/query-entry-points"
 
-// --- Product definitions ---
+// --- Color & Size definitions ---
 
 const COLORS = [
   "Trắng",
@@ -44,12 +45,22 @@ const COLORS = [
 
 const SIZES = ["S", "M", "L", "XL", "XXL"]
 
+// --- Collection definitions ---
+
+const COLLECTIONS = [
+  { title: "T-shirt", handle: "tshirt" },
+  { title: "Polo", handle: "polo" },
+  { title: "Hoodie", handle: "hoodie" },
+]
+
+// --- Product definitions ---
+
 interface ProductDef {
   title: string
   handle: string
   description: string
   category: string
-  collection: string
+  collectionHandle: string
   weight: number
   priceVnd: number
 }
@@ -61,7 +72,7 @@ const PRODUCTS: ProductDef[] = [
     description:
       "Áo thun Basic cotton 100%, 180gsm. Thiết kế thoải mái, phù hợp in theo yêu cầu.",
     category: "T-shirt",
-    collection: "tshirt",
+    collectionHandle: "tshirt",
     weight: 250,
     priceVnd: 199000,
   },
@@ -71,7 +82,7 @@ const PRODUCTS: ProductDef[] = [
     description:
       "Áo thun Premium cotton compact, 220gsm. Chất vải dày dặn, form đẹp, in sắc nét.",
     category: "T-shirt",
-    collection: "tshirt",
+    collectionHandle: "tshirt",
     weight: 300,
     priceVnd: 249000,
   },
@@ -81,7 +92,7 @@ const PRODUCTS: ProductDef[] = [
     description:
       "Áo Polo cotton pique, 200gsm. Có cổ lịch sự, phù hợp đồng phục và thường ngày.",
     category: "Polo",
-    collection: "polo",
+    collectionHandle: "polo",
     weight: 280,
     priceVnd: 299000,
   },
@@ -91,7 +102,7 @@ const PRODUCTS: ProductDef[] = [
     description:
       "Áo Hoodie cotton fleece, 320gsm. Ấm áp, có mũ trùm, phù hợp mùa đông.",
     category: "Hoodie",
-    collection: "hoodie",
+    collectionHandle: "hoodie",
     weight: 500,
     priceVnd: 399000,
   },
@@ -99,18 +110,13 @@ const PRODUCTS: ProductDef[] = [
 
 // --- Helper: generate variants for a product ---
 
-function buildVariants(
-  product: ProductDef,
-  salesChannelId: string
-): {
-  variants: Array<{
-    title: string
-    sku: string
-    options: Record<string, string>
-    prices: Array<{ amount: number; currency_code: string }>
-  }>
-} {
-  const variants = COLORS.flatMap((color) =>
+function buildVariants(product: ProductDef): Array<{
+  title: string
+  sku: string
+  options: Record<string, string>
+  prices: Array<{ amount: number; currency_code: string }>
+}> {
+  return COLORS.flatMap((color) =>
     SIZES.map((size) => {
       const skuColor = color
         .normalize("NFD")
@@ -126,7 +132,6 @@ function buildVariants(
       }
     })
   )
-  return { variants }
 }
 
 // --- Workflow: update store currencies ---
@@ -160,6 +165,20 @@ export default async function seedDemoData({ container }: ExecArgs) {
   const fulfillmentModuleService = container.resolve(Modules.FULFILLMENT)
   const salesChannelModuleService = container.resolve(Modules.SALES_CHANNEL)
   const storeModuleService = container.resolve(Modules.STORE)
+
+  // --- Idempotency check: skip if products already exist ---
+  const { data: existingProducts } = await query.graph({
+    entity: "product",
+    fields: ["id"],
+    filters: { handle: PRODUCTS.map((p) => p.handle) },
+  })
+
+  if (existingProducts.length >= PRODUCTS.length) {
+    logger.info(
+      `Seed skipped: ${existingProducts.length} products already exist.`
+    )
+    return
+  }
 
   // --- Store & Sales Channel ---
   logger.info("Seeding store data...")
@@ -290,7 +309,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
         price_type: "flat",
         provider_id: "manual_manual",
         service_zone_id: fulfillmentSet.service_zones[0].id,
-        shipping_profile_id: shippingProfile.id,
+        shipping_profile_id: shippingProfile!.id,
         type: {
           label: "Nội thành",
           description: "Giao hàng nội thành 1-2 ngày",
@@ -310,7 +329,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
         price_type: "flat",
         provider_id: "manual_manual",
         service_zone_id: fulfillmentSet.service_zones[0].id,
-        shipping_profile_id: shippingProfile.id,
+        shipping_profile_id: shippingProfile!.id,
         type: {
           label: "Ngoại thành",
           description: "Giao hàng ngoại thành 2-3 ngày",
@@ -330,7 +349,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
         price_type: "flat",
         provider_id: "manual_manual",
         service_zone_id: fulfillmentSet.service_zones[0].id,
-        shipping_profile_id: shippingProfile.id,
+        shipping_profile_id: shippingProfile!.id,
         type: {
           label: "Liên tỉnh",
           description: "Giao hàng liên tỉnh 3-5 ngày",
@@ -389,7 +408,21 @@ export default async function seedDemoData({ container }: ExecArgs) {
   })
   logger.info("Finished seeding publishable API key data.")
 
-  // --- Product categories ---
+  // --- Product Collections ---
+  logger.info("Seeding product collections...")
+  const { result: collectionResult } = await createCollectionsWorkflow(
+    container
+  ).run({
+    input: {
+      collections: COLLECTIONS.map((c) => ({
+        title: c.title,
+        handle: c.handle,
+      })),
+    },
+  })
+  logger.info("Finished seeding product collections.")
+
+  // --- Product Categories ---
   logger.info("Seeding product data...")
   const { result: categoryResult } = await createProductCategoriesWorkflow(
     container
@@ -403,11 +436,14 @@ export default async function seedDemoData({ container }: ExecArgs) {
     },
   })
 
-  // --- Products ---
+  // --- Products (with collections) ---
   const productsInput = PRODUCTS.map((product) => {
-    const { variants } = buildVariants(product, defaultSalesChannel[0].id)
+    const variants = buildVariants(product)
     const categoryId = categoryResult.find(
       (cat) => cat.name === product.category
+    )!.id
+    const collectionId = collectionResult.find(
+      (col) => col.handle === product.collectionHandle
     )!.id
 
     return {
@@ -418,6 +454,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
       status: ProductStatus.PUBLISHED,
       shipping_profile_id: shippingProfile!.id,
       category_ids: [categoryId],
+      collection_id: collectionId,
       images: [
         {
           url: `https://placehold.co/800x800/f0f0f0/333?text=${encodeURIComponent(product.title)}+Front`,
