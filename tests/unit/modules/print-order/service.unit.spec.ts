@@ -1,4 +1,4 @@
-import PrintOrderService from "../service"
+import PrintOrderService from "../../../../src/modules/print-order/service"
 
 // Instantiate service and mock inherited MedusaService methods
 function createMockService() {

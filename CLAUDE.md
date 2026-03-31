@@ -254,6 +254,50 @@ pending → processing → shipped → delivered
 - Admin downloads files → brings to print shop
 - URLs: `s3://{bucket}/designs/{order_id}/{side}.png`
 
+## Lessons Learned
+
+### defineLink — Custom module `linkable` is empty at import time
+Custom module's `.linkable` property is only populated at Medusa boot, not at `import` time. When writing `src/links/*.ts`, use manual `InputSource` shape instead of `Module.linkable.ModelName`:
+```ts
+// ✅ Correct — manual InputSource
+import { defineLink } from "@medusajs/framework/utils"
+import OrderModule from "@medusajs/medusa/order"
+import { PRINT_ORDER_MODULE } from "../modules/print-order"
+
+export default defineLink(
+  {
+    linkable: {
+      serviceName: PRINT_ORDER_MODULE,
+      field: "printJob",
+      entity: "PrintJob",
+      linkable: "print_job_id",
+      primaryKey: "id",
+    },
+    isList: true,
+  },
+  OrderModule.linkable.order  // built-in modules have linkable populated
+)
+
+// ❌ Wrong — will throw "Invalid linkable" at build time
+defineLink(PrintOrderModule.linkable.PrintJob, OrderModule.linkable.order)
+```
+
+### Workflow step types with WorkflowData wrappers
+Medusa wraps step outputs in `WorkflowData<T>`. When one step output feeds into another step's input:
+- Make array fields optional (e.g., `items?: Array<...>`) since they come wrapped
+- Use `?? []` to handle undefined arrays safely
+- Add explicit type annotation on compensation functions
+
+### Store API requires `x-publishable-api-key`
+All `/store/*` routes require the `x-publishable-api-key` header. The Medusa JS SDK handles this automatically, but manual API testing (curl, api-tester) must set this header explicitly.
+
+### Windows: inline env vars don't work in npm scripts
+`TEST_TYPE=unit jest` fails on Windows cmd. Use bash shell or `cross-env`:
+```bash
+# In bash (Git Bash, WSL):
+TEST_TYPE=unit npx jest --runInBand --forceExit
+```
+
 ## Cross-Repo Dependencies
 - `@tshirt/shared` — shared TypeScript types and constants
 - `tshirt-store` communicates via Medusa Store API (CORS: `STORE_CORS`)

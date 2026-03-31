@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mv src/workflows/__tests__/*.ts tests/unit/workflows/)",
+      "Bash(mv src/modules/print-order/__tests__/*.ts tests/unit/modules/print-order/)",
+      "Bash(mv src/subscribers/__tests__/*.ts tests/unit/subscribers/)",
+      "Bash(mv src/scripts/__tests__/*.ts tests/unit/scripts/)",
+      "Bash(mv src/api/admin/print-orders/__tests__/*.ts tests/unit/api/admin/print-orders/)",
+      "Bash(TEST_TYPE=unit npx jest --no-cache)"
+    ]
+  }
+}

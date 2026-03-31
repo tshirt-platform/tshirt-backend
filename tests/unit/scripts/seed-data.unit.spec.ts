@@ -4,7 +4,7 @@ import {
   COLLECTIONS,
   PRODUCTS,
   buildVariants,
-} from "../seed-data"
+} from "../../../src/scripts/seed-data"
 
 describe("Seed Data", () => {
   describe("COLORS", () => {
