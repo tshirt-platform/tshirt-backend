@@ -21,6 +21,7 @@ describe("api middlewares", () => {
       "POST:/admin/mockups",
       "PUT:/admin/mockups/:id/mask",
       "PUT:/admin/mockups/:id/occlusion",
+      "PUT:/store/designs/:designId/:side/:kind",
     ])
   })
 

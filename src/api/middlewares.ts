@@ -16,5 +16,7 @@ export default defineMiddlewares({
     { matcher: "/admin/mockups", method: ["POST"], bodyParser: false },
     { matcher: "/admin/mockups/:id/mask", method: ["PUT"], bodyParser: false },
     { matcher: "/admin/mockups/:id/occlusion", method: ["PUT"], bodyParser: false },
+    // Design files are raw bytes (PNG, JPEG or scene JSON) that the route reads and checks itself
+    { matcher: "/store/designs/:designId/:side/:kind", method: ["PUT"], bodyParser: false },
   ],
 })
