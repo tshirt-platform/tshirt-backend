@@ -83,6 +83,19 @@ describe("PUT /store/designs/:designId/:side/:kind", () => {
   })
 })
 
+describe("upload rate limit", () => {
+  it("refuses an address that keeps uploading", async () => {
+    const codes: number[] = []
+    for (let i = 0; i < 62; i++) {
+      const res = makeRes()
+      await PUT(makeReq(PNG, { ip: "7.7.7.7" }) as never, res as never)
+      codes.push(res.status.mock.calls[0][0])
+    }
+    expect(codes.slice(0, 60).every((c) => c === 201)).toBe(true)
+    expect(codes.slice(60)).toEqual([429, 429])
+  })
+})
+
 describe("GET /store/designs/:designId/:side/:kind", () => {
   it("returns the stored scene", async () => {
     storage.get.mockResolvedValue(Buffer.from('{"objects":[]}'))

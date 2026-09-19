@@ -6,6 +6,10 @@ import {
   getDesignStorage,
   parseDesignFileRef,
 } from "../../../../../../lib/design-storage"
+import { clientKey, createRateLimiter } from "../../../../../../lib/rate-limit"
+
+// A save uploads up to six files (png, scene and preview for two sides)
+const uploadLimiter = createRateLimiter(60, 10 * 60 * 1000)
 
 /** Collects the request body, giving up as soon as it passes the limit instead of buffering it all */
 async function readBody(req: MedusaRequest, maxBytes: number): Promise<Buffer | null> {
@@ -27,6 +31,13 @@ async function readBody(req: MedusaRequest, maxBytes: number): Promise<Buffer | 
  * bucket credentials. Files are named by the server from validated parts.
  */
 export async function PUT(req: MedusaRequest, res: MedusaResponse): Promise<void> {
+  const verdict = uploadLimiter.hit(clientKey(req))
+  if (!verdict.allowed) {
+    res.setHeader("Retry-After", String(verdict.retryAfterSeconds))
+    res.status(429).json({ message: "Too many uploads, try again later" })
+    return
+  }
+
   const ref = parseDesignFileRef(req.params)
   if (!ref) {
     res.status(400).json({ message: "Invalid design file" })
