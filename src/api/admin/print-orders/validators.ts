@@ -1,12 +1,5 @@
 import { z } from "zod"
-
-const PRINT_JOB_STATUSES = [
-  "pending",
-  "processing",
-  "shipped",
-  "delivered",
-  "cancelled",
-] as const
+import { PRINT_JOB_STATUSES } from "@tshirt-platform/shared"
 
 export const printOrderQuerySchema = z.object({
   status: z.enum(PRINT_JOB_STATUSES).optional(),

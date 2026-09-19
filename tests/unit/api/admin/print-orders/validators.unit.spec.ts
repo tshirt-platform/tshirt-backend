@@ -31,6 +31,21 @@ describe("printOrderQuerySchema", () => {
   })
 })
 
+describe("print job statuses", () => {
+  it("come from the shared list, including the proof step", () => {
+    for (const status of ["pending", "proof_approved", "processing", "shipped", "delivered", "cancelled"]) {
+      expect(updatePrintJobSchema.safeParse({ status }).success).toBe(true)
+      expect(printOrderQuerySchema.safeParse({ status }).success).toBe(true)
+    }
+  })
+
+  it("no longer accepts the old shared-only names", () => {
+    for (const status of ["printing", "failed"]) {
+      expect(updatePrintJobSchema.safeParse({ status }).success).toBe(false)
+    }
+  })
+})
+
 describe("updatePrintJobSchema", () => {
   it("accepts valid status update", () => {
     const result = updatePrintJobSchema.parse({
