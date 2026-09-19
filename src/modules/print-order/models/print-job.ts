@@ -23,5 +23,7 @@ const PrintJob = model.define("print_job", {
   notes: model.text().nullable(),
   metadata: model.json().nullable(),
 })
+  // Order tracking and the print package look jobs up by order; the admin list filters by status
+  .indexes([{ on: ["order_id"] }, { on: ["status"] }])
 
 export default PrintJob

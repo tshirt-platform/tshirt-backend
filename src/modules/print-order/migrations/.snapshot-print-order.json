@@ -228,6 +228,24 @@
           "expression": "CREATE INDEX IF NOT EXISTS \"IDX_print_job_deleted_at\" ON \"print_job\" (\"deleted_at\") WHERE deleted_at IS NULL"
         },
         {
+          "keyName": "IDX_print_job_order_id",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_print_job_order_id\" ON \"print_job\" (\"order_id\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_print_job_status",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_print_job_status\" ON \"print_job\" (\"status\") WHERE deleted_at IS NULL"
+        },
+        {
           "keyName": "print_job_pkey",
           "columnNames": [
             "id"
