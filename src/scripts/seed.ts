@@ -32,6 +32,7 @@ import {
   SIZES,
   COLLECTIONS,
   PRODUCTS,
+  buildPrintConfig,
   buildVariants,
 } from "./seed-data"
 
@@ -351,6 +352,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
       title: product.title,
       handle: product.handle,
       description: product.description,
+      metadata: { print_config: buildPrintConfig(product) },
       weight: product.weight,
       status: ProductStatus.PUBLISHED,
       shipping_profile_id: shippingProfile!.id,
