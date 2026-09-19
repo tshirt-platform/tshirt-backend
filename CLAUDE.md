@@ -25,10 +25,19 @@ COOKIE_SECRET=<change-in-production>
 STORE_CORS=http://localhost:3000
 ADMIN_CORS=http://localhost:9000
 AUTH_CORS=http://localhost:3000,http://localhost:9000
+# Design file storage. Leave S3_BUCKET_NAME empty in development to keep files in ./static.
+# Cloudflare R2: AWS_REGION=auto, S3_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
 AWS_REGION=ap-southeast-1
 AWS_ACCESS_KEY_ID=
 AWS_SECRET_ACCESS_KEY=
 S3_BUCKET_NAME=
+S3_ENDPOINT=
+# Where the bucket is served from (r2.dev URL or custom domain); required with S3_ENDPOINT
+S3_PUBLIC_URL=
+# Origins the print package may download design files from (comma separated)
+DESIGN_FILE_ORIGINS=
+# Used to build file URLs in development
+BACKEND_PUBLIC_URL=http://localhost:9000
 ```
 
 ## Folder Structure
@@ -250,9 +259,17 @@ pending → processing → shipped → delivered
 | POST | `/admin/print-orders/:id/cancel` | Cancel job |
 
 ### Design Files
-- Stored on S3 as presigned URLs (PNG + Fabric.js JSON)
-- Admin downloads files → brings to print shop
-- URLs: `s3://{bucket}/designs/{order_id}/{side}.png`
+The storefront saves designs through this service; it is the only place with bucket credentials.
+
+| Method | Route | Action |
+|---|---|---|
+| PUT | `/store/designs/:designId/:side/:kind` | Upload `png`, `json` or `jpg` (raw body). Checks the id, side, size and file signature; names the file itself; returns `{ url }` |
+| GET | `/store/designs/:designId/:side/json` | Read an editor scene back (no bucket CORS needed) |
+
+- Files live at `designs/{designId}/{side}.{kind}` in S3 or R2 (`src/lib/design-storage`), or in `./static` in development
+- Admin downloads the print PNGs through the print package route → brings to print shop
+- Limits: png 40 MB, jpg 10 MB, json 5 MB
+- Not yet done: rate limiting the upload route, and clearing files of designs that never became an order
 
 ## Lessons Learned
 
