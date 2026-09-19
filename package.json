@@ -28,7 +28,7 @@
     "@medusajs/cli": "2.13.1",
     "@medusajs/framework": "2.13.1",
     "@medusajs/medusa": "2.13.1",
-    "@tshirt-platform/shared": "^1.0.0",
+    "@tshirt-platform/shared": "^1.1.0",
     "axios": "^1.14.0",
     "fflate": "^0.8.3",
     "zod": "^3.25.76"

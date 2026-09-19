@@ -47,6 +47,45 @@ export async function saveQuad(id: string, points: number[][]): Promise<Mockup> 
   return res.json()
 }
 
+/** The print's real size and where it hangs on the reference garment, in millimetres */
+export type FitSpec = {
+  print_width_mm: number
+  print_height_mm: number
+  top_offset_mm: number
+  garment_length_mm: number
+}
+
+/** Puts the print area on the photo at true size and proportions, so it is not stretched */
+export async function fitQuad(id: string, spec: FitSpec): Promise<Mockup> {
+  const res = await call(`/admin/mockups/${id}/quad/fit`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(spec),
+  })
+  return res.json()
+}
+
+type Outline = number[][]
+
+async function saveOutline(id: string, layer: "mask" | "occlusion", outlines: Outline[]): Promise<Mockup> {
+  const res = await call(`/admin/mockups/${id}/${layer}/outline`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ outlines, refine: true }),
+  })
+  return res.json()
+}
+
+/** The garment area drawn by hand; corners are 0..1 of the photo */
+export const saveMaskOutline = (id: string, outlines: Outline[]) => saveOutline(id, "mask", outlines)
+
+/** What sits in front of the print (an arm, hair) */
+export const saveOcclusionOutline = (id: string, outlines: Outline[]) => saveOutline(id, "occlusion", outlines)
+
+export async function clearOcclusion(id: string): Promise<Mockup> {
+  return (await call(`/admin/mockups/${id}/occlusion`, { method: "DELETE" })).json()
+}
+
 export async function replaceMaskLayer(
   id: string,
   layer: "mask" | "occlusion",
