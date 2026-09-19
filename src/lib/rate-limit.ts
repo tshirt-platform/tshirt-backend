@@ -36,7 +36,7 @@ export function createRateLimiter(
   }
 }
 
-/** The requesting address; behind a proxy Express must be told to trust it (`trust proxy`) or every visitor looks alike */
+/** The requesting address. Medusa trusts one proxy hop (`trust proxy` = 1), so behind exactly one reverse proxy this is the visitor, not the proxy */
 export function clientKey(req: { ip?: string; socket?: { remoteAddress?: string } }): string {
   return req.ip || req.socket?.remoteAddress || "unknown"
 }

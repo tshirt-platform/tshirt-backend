@@ -1,6 +1,8 @@
 import { loadEnv, defineConfig } from '@medusajs/framework/utils'
+import { assertValidEnv } from './src/lib/env-check'
 
 loadEnv(process.env.NODE_ENV || 'development', process.cwd())
+assertValidEnv()
 
 module.exports = defineConfig({
   projectConfig: {
