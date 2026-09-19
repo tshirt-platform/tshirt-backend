@@ -299,5 +299,5 @@ TEST_TYPE=unit npx jest --runInBand --forceExit
 ```
 
 ## Cross-Repo Dependencies
-- `@tshirt/shared` — shared TypeScript types and constants
+- `@tshirt-platform/shared` — shared TypeScript types and constants
 - `tshirt-store` communicates via Medusa Store API (CORS: `STORE_CORS`)

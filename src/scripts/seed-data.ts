@@ -1,4 +1,9 @@
 // Shared data definitions for seed scripts
+import {
+  DEFAULT_PRINT_CONFIG_META,
+  type PrintConfigMeta,
+  type ShirtType,
+} from "@tshirt-platform/shared"
 
 export const COLORS = [
   "Trắng",
@@ -22,6 +27,7 @@ export const COLLECTIONS = [
 ]
 
 export interface ProductDef {
+  shirtType: ShirtType
   title: string
   handle: string
   description: string
@@ -33,6 +39,7 @@ export interface ProductDef {
 
 export const PRODUCTS: ProductDef[] = [
   {
+    shirtType: "tshirt",
     title: "T-shirt Basic",
     handle: "tshirt-basic",
     description:
@@ -43,6 +50,7 @@ export const PRODUCTS: ProductDef[] = [
     priceVnd: 199000,
   },
   {
+    shirtType: "tshirt",
     title: "T-shirt Premium",
     handle: "tshirt-premium",
     description:
@@ -53,6 +61,7 @@ export const PRODUCTS: ProductDef[] = [
     priceVnd: 249000,
   },
   {
+    shirtType: "polo",
     title: "Polo",
     handle: "polo",
     description:
@@ -63,6 +72,7 @@ export const PRODUCTS: ProductDef[] = [
     priceVnd: 299000,
   },
   {
+    shirtType: "hoodie",
     title: "Hoodie",
     handle: "hoodie",
     description:
@@ -96,4 +106,22 @@ export function buildVariants(product: ProductDef): Array<{
       }
     })
   )
+}
+
+// Starting point for how each garment type prints. Real numbers come from the
+// product's size chart and collar depth in the admin.
+const NECK_DROP_CM: Record<ShirtType, { front: number; back: number }> = {
+  tshirt: { front: 8, back: 2.5 },
+  polo: { front: 9, back: 3 },
+  hoodie: { front: 10, back: 4 },
+}
+
+export function buildPrintConfig(product: Pick<ProductDef, "shirtType">): PrintConfigMeta {
+  const drop = NECK_DROP_CM[product.shirtType]
+  return {
+    ...DEFAULT_PRINT_CONFIG_META,
+    shirt_type: product.shirtType,
+    neck_drop_front_cm: drop.front,
+    neck_drop_back_cm: drop.back,
+  }
 }

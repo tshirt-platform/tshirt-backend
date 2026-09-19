@@ -1,8 +1,14 @@
 import {
+  derivePrintArea,
+  parsePrintConfig,
+  toGarmentMeasurements,
+} from "@tshirt-platform/shared"
+import {
   COLORS,
   SIZES,
   COLLECTIONS,
   PRODUCTS,
+  buildPrintConfig,
   buildVariants,
 } from "../../../src/scripts/seed-data"
 
@@ -106,6 +112,33 @@ describe("Seed Data", () => {
       const variants = buildVariants(product)
       const titles = variants.map((v) => v.title)
       expect(new Set(titles).size).toBe(titles.length)
+    })
+  })
+
+  describe("buildPrintConfig", () => {
+    it.each(PRODUCTS.map((p) => [p.handle, p] as const))(
+      "%s gets a valid config whose print fits on both sides",
+      (_handle, product) => {
+        const config = buildPrintConfig(product)
+        expect(parsePrintConfig(config)).not.toBeNull()
+        expect(config.shirt_type).toBe(product.shirtType)
+
+        const measurements = toGarmentMeasurements(config)
+        for (const side of ["front", "back"] as const) {
+          expect(() => derivePrintArea(measurements, side)).not.toThrow()
+        }
+      }
+    )
+
+    it("covers every colour the variants use", () => {
+      const names = buildPrintConfig(PRODUCTS[0]).colors.map((c) => c.name)
+      expect(names.sort()).toEqual([...COLORS].sort())
+    })
+
+    it("gives each garment type its own collar depth", () => {
+      const depth = (i: number) => buildPrintConfig(PRODUCTS[i]).neck_drop_front_cm
+      const byType = PRODUCTS.map((p, i) => [p.shirtType, depth(i)])
+      expect(new Set(byType.map(([, d]) => d)).size).toBe(3)
     })
   })
 })
