@@ -8,6 +8,9 @@ export type Mockup = {
   quad: number[][] | null
   mask_coverage: number
   has_occlusion: boolean
+  /** Degrees of body the print wraps round, and how far the body is turned from the camera */
+  wrap_deg?: number
+  yaw_deg?: number
   version: number
 }
 
@@ -61,6 +64,16 @@ export async function fitQuad(id: string, spec: FitSpec): Promise<Mockup> {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(spec),
+  })
+  return res.json()
+}
+
+/** 0 wrap is flat (a flat lay); a worn shirt is curved, and a turned body squeezes one side */
+export async function saveCurve(id: string, wrapDeg: number, yawDeg: number): Promise<Mockup> {
+  const res = await call(`/admin/mockups/${id}/curve`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ wrap_deg: wrapDeg, yaw_deg: yawDeg }),
   })
   return res.json()
 }
