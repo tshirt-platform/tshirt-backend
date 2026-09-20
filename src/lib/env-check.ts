@@ -8,9 +8,22 @@ export interface EnvReport {
 const WEAK_SECRETS = new Set(["supersecret", "secret", "changeme", "change-me", "password", "<change-in-production>"])
 const MIN_SECRET_LENGTH = 32
 
+/** How long an admin session lasts when ADMIN_SESSION_TTL_HOURS is not set: Medusa's own default */
+export const DEFAULT_SESSION_HOURS = 10
+const MAX_SESSION_HOURS = 24 * 30
+const MAX_PRODUCTION_SESSION_HOURS = 24
+
 const isSet = (v: string | undefined): v is string => typeof v === "string" && v.trim() !== ""
 const origins = (v: string | undefined) => (v ?? "").split(",").map((s) => s.trim()).filter(Boolean)
 const isLocal = (origin: string) => /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?(\/|$)/i.test(origin)
+
+/** The admin session lifetime in hours; the default when the setting is missing or unusable */
+export function sessionHours(env: NodeJS.ProcessEnv): number {
+  const raw = env.ADMIN_SESSION_TTL_HOURS
+  if (!isSet(raw)) return DEFAULT_SESSION_HOURS
+  const hours = Number(raw)
+  return Number.isFinite(hours) && hours >= 1 && hours <= MAX_SESSION_HOURS ? hours : DEFAULT_SESSION_HOURS
+}
 
 /**
  * Checks the settings the server depends on. Development gets a warning where production
@@ -57,6 +70,15 @@ export function checkEnv(env: NodeJS.ProcessEnv): EnvReport {
 
   if (production && !isSet(env.DESIGN_FILE_ORIGINS)) {
     errors.push("DESIGN_FILE_ORIGINS is not set: the print package could not download any design file")
+  }
+
+  if (isSet(env.ADMIN_SESSION_TTL_HOURS)) {
+    const hours = Number(env.ADMIN_SESSION_TTL_HOURS)
+    if (!Number.isFinite(hours) || hours < 1 || hours > MAX_SESSION_HOURS) {
+      warnings.push(`ADMIN_SESSION_TTL_HOURS must be a number of hours from 1 to ${MAX_SESSION_HOURS}; using ${DEFAULT_SESSION_HOURS}`)
+    } else if (hours > MAX_PRODUCTION_SESSION_HOURS) {
+      problem(`ADMIN_SESSION_TTL_HOURS is ${hours}: sessions longer than ${MAX_PRODUCTION_SESSION_HOURS} hours are for development only`)
+    }
   }
 
   const render = env.RENDER_SERVICE_URL
