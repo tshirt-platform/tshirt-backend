@@ -22,7 +22,7 @@ const clamp = (v: number) => Math.min(1, Math.max(0, v))
  */
 export function AnchorEditor({ mockup, spec, onSaved, onClose }: Props) {
   const box = useRef<HTMLDivElement>(null)
-  const [guess, setGuess] = useState<Anchors | null>(null)
+  const [opened, setOpened] = useState<Anchors | null>(null)
   const [points, setPoints] = useState<Anchors | null>(null)
   const [drag, setDrag] = useState<Key | null>(null)
   const [saving, setSaving] = useState(false)
@@ -31,7 +31,7 @@ export function AnchorEditor({ mockup, spec, onSaved, onClose }: Props) {
   useEffect(() => {
     getAnchors(mockup.id)
       .then(({ anchors }) => {
-        setGuess(anchors)
+        setOpened(anchors)
         setPoints(anchors)
       })
       .catch((e) => setError(e instanceof Error ? e.message : "Không tải được điểm chuẩn"))
@@ -118,7 +118,7 @@ export function AnchorEditor({ mockup, spec, onSaved, onClose }: Props) {
 
       <div className="flex flex-wrap gap-2">
         <Button size="small" onClick={save} isLoading={saving} disabled={!points || !spec || !quad || outside}>Lưu 3 điểm</Button>
-        <Button size="small" variant="secondary" disabled={!guess} onClick={() => setPoints(guess)}>Về gợi ý tự động</Button>
+        <Button size="small" variant="secondary" disabled={!opened} onClick={() => setPoints(opened)}>Hoàn tác thay đổi</Button>
         <Button size="small" variant="secondary" onClick={onClose}>Đóng</Button>
       </div>
       {error && <p className="text-ui-fg-error text-sm">{error}</p>}
