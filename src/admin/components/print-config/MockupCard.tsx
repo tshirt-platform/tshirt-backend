@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { Badge, Button } from "@medusajs/ui"
 import {
+  analyzeMockup,
   clearOcclusion,
   mockupImageUrl,
   placeFromGuess,
@@ -23,6 +24,7 @@ type Props = {
   mockup: Mockup
   spec: FitSpec | null
   colors: { name: string; hex: string }[]
+  aiEnabled: boolean
   position: number
   total: number
   onMove: (delta: -1 | 1) => void
@@ -31,7 +33,7 @@ type Props = {
 }
 
 /** One preview photo of a side: where the print sits on it and how it is cut out */
-export function MockupCard({ mockup, spec, colors, position, total, onMove, onRemove, onChanged }: Props) {
+export function MockupCard({ mockup, spec, colors, aiEnabled, position, total, onMove, onRemove, onChanged }: Props) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [tool, setTool] = useState<Tool>(null)
@@ -77,12 +79,21 @@ export function MockupCard({ mockup, spec, colors, position, total, onMove, onRe
             Vùng in:{" "}
             {!mockup.quad ? (
               <Badge color="orange">chưa đặt</Badge>
+            ) : mockup.anchors_confirmed === false && mockup.analysis ? (
+              <Badge color={mockup.analysis.issues.length > 0 ? "orange" : "blue"}>
+                AI đã đặt ({Math.round(mockup.analysis.confidence * 100)}%), cần xem lại
+              </Badge>
             ) : mockup.anchors_confirmed === false ? (
               <Badge color="orange">tự đoán, cần kiểm tra</Badge>
             ) : (
               <Badge color="green">đã đặt</Badge>
             )}
           </div>
+          {mockup.analysis && mockup.analysis.issues.length > 0 && (
+            <ul className="text-ui-fg-error list-disc pl-4">
+              {mockup.analysis.issues.map((i) => <li key={i}>{i}</li>)}
+            </ul>
+          )}
           <div className="text-ui-fg-subtle">Vùng áo nhận diện: {coverage}% ảnh</div>
           <div className="text-ui-fg-subtle">Lớp che (tay, tóc): {mockup.has_occlusion ? "có" : "không"}</div>
           {suspicious && (
@@ -97,8 +108,13 @@ export function MockupCard({ mockup, spec, colors, position, total, onMove, onRe
       </div>
 
       <div className="flex flex-wrap gap-2">
+        {aiEnabled && (
+          <Button size="small" variant="secondary" disabled={busy || !spec} onClick={() => void run(() => analyzeMockup(mockup.id, spec as FitSpec))}>
+            Phân tích lại bằng AI
+          </Button>
+        )}
         <Button size="small" variant="secondary" disabled={busy || !spec} onClick={() => setTool(tool === "anchor" ? null : "anchor")}>
-          Đặt 3 điểm chuẩn
+          Chỉnh tay 3 điểm chuẩn
         </Button>
         <Button size="small" variant="secondary" disabled={busy} onClick={() => (tool === "quad" ? setTool(null) : void openEditor())}>
           Tinh chỉnh 4 góc (phối cảnh)

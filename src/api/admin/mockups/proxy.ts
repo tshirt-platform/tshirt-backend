@@ -64,7 +64,7 @@ export async function forward(
 /** Runs the forward for a route with a template id in the path */
 export function templateRoute(
   suffix: string,
-  method: "GET" | "PUT" | "DELETE",
+  method: "GET" | "PUT" | "POST" | "DELETE",
   body: Body = "none"
 ) {
   return async (req: MedusaRequest, res: MedusaResponse) => {

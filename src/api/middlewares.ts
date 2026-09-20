@@ -12,6 +12,10 @@ export default defineMiddlewares({
       matcher: "/admin/mockups*",
       middlewares: [adminAuth],
     },
+    {
+      matcher: "/admin/mockup-ai*",
+      middlewares: [adminAuth],
+    },
     // Uploads are streamed to the render service, so the body must stay unparsed
     { matcher: "/admin/mockups", method: ["POST"], bodyParser: false },
     { matcher: "/admin/mockups/:id/mask", method: ["PUT"], bodyParser: false },
