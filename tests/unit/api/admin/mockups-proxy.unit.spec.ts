@@ -115,6 +115,20 @@ describe("templateRoute", () => {
     expect(fetchMock.mock.calls[0][1].method).toBe("PUT")
   })
 
+  it("passes the query string on (the sample preview takes ?hex=&width=)", async () => {
+    fetchMock.mockResolvedValue(new Response("x"))
+    const req = makeReq({ params: { id: "2ea1b397cc73" }, url: "/admin/mockups/2ea1b397cc73/sample?hex=%23F4F4F0&width=560&v=3" })
+    await templateRoute("/sample", "GET")(req as never, makeRes() as never)
+    expect(fetchMock.mock.calls[0][0]).toBe("http://localhost:8001/templates/2ea1b397cc73/sample?hex=%23F4F4F0&width=560&v=3")
+  })
+
+  it("adds nothing when there is no query string", async () => {
+    fetchMock.mockResolvedValue(new Response("x"))
+    const req = makeReq({ params: { id: "2ea1b397cc73" }, url: "/admin/mockups/2ea1b397cc73/sample" })
+    await templateRoute("/sample", "GET")(req as never, makeRes() as never)
+    expect(fetchMock.mock.calls[0][0]).toBe("http://localhost:8001/templates/2ea1b397cc73/sample")
+  })
+
   it("never forwards an id that could rewrite the path", async () => {
     const res = makeRes()
     await templateRoute("", "DELETE")(makeReq({ params: { id: "../../health" } }) as never, res as never)

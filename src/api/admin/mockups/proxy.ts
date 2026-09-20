@@ -74,7 +74,8 @@ export function templateRoute(
       return
     }
     // The query string goes along (?hex=..&width=..); the service validates it
-    const query = req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : ""
+    const url = req.url ?? ""
+    const query = url.includes("?") ? url.slice(url.indexOf("?")) : ""
     await forward(req, res, `/templates/${id}${suffix}${query}`, method, body)
   }
 }
