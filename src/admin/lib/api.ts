@@ -1,4 +1,5 @@
 import type { DesignSide } from "@tshirt-platform/shared"
+import type { Anchors, PrintSpec } from "./anchor-quad"
 
 export type Mockup = {
   id: string
@@ -11,6 +12,7 @@ export type Mockup = {
   /** Degrees of body the print wraps round, and how far the body is turned from the camera */
   wrap_deg?: number
   yaw_deg?: number
+  anchors_confirmed?: boolean
   version: number
 }
 
@@ -50,22 +52,30 @@ export async function saveQuad(id: string, points: number[][]): Promise<Mockup> 
   return res.json()
 }
 
-/** The print's real size and where it hangs on the reference garment, in millimetres */
-export type FitSpec = {
-  print_width_mm: number
-  print_height_mm: number
-  top_offset_mm: number
-  garment_length_mm: number
+/** The print's real size and how wide the body is in real life, in millimetres */
+export type FitSpec = PrintSpec
+
+/** The three reference points of a photo; `confirmed` is false while it is only the automatic guess */
+export type AnchorSet = { anchors: Anchors; confirmed: boolean }
+
+export async function getAnchors(id: string): Promise<AnchorSet> {
+  return (await call(`/admin/mockups/${id}/anchors`)).json()
 }
 
-/** Puts the print area on the photo at true size and proportions, so it is not stretched */
-export async function fitQuad(id: string, spec: FitSpec): Promise<Mockup> {
-  const res = await call(`/admin/mockups/${id}/quad/fit`, {
+/** Places the print from three points marked on the photo, at its true size and proportions */
+export async function saveAnchors(id: string, anchors: Anchors, spec: FitSpec, suggested = false): Promise<Mockup> {
+  const res = await call(`/admin/mockups/${id}/quad/anchor`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(spec),
+    body: JSON.stringify({ ...anchors, ...spec, suggested }),
   })
   return res.json()
+}
+
+/** A fresh photo: put the print where the mask says the body is, and mark it as not yet checked */
+export async function placeFromGuess(id: string, spec: FitSpec): Promise<Mockup> {
+  const { anchors } = await getAnchors(id)
+  return saveAnchors(id, anchors, spec, true)
 }
 
 /** 0 wrap is flat (a flat lay); a worn shirt is curved, and a turned body squeezes one side */

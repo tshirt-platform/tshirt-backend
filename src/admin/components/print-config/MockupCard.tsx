@@ -2,8 +2,8 @@ import { useState } from "react"
 import { Badge, Button } from "@medusajs/ui"
 import {
   clearOcclusion,
-  fitQuad,
   mockupImageUrl,
+  placeFromGuess,
   replaceMaskLayer,
   saveCurve,
   saveMaskOutline,
@@ -11,11 +11,12 @@ import {
   type FitSpec,
   type Mockup,
 } from "../../lib/api"
+import { AnchorEditor } from "./AnchorEditor"
 import { CurveControls } from "./CurveControls"
 import { OutlineEditor } from "./OutlineEditor"
 import { QuadEditor } from "./QuadEditor"
 
-type Tool = "quad" | "mask" | "occlusion" | null
+type Tool = "anchor" | "quad" | "mask" | "occlusion" | null
 
 type Props = {
   mockup: Mockup
@@ -50,7 +51,7 @@ export function MockupCard({ mockup, spec, position, total, onMove, onRemove, on
 
   async function openEditor() {
     // A fresh photo starts from a print of the right proportions, not a default box
-    if (!mockup.quad && spec && !(await run(() => fitQuad(mockup.id, spec)))) return
+    if (!mockup.quad && spec && !(await run(() => placeFromGuess(mockup.id, spec)))) return
     setTool("quad")
   }
 
@@ -65,7 +66,14 @@ export function MockupCard({ mockup, spec, position, total, onMove, onRemove, on
         <div className="flex flex-1 flex-col gap-y-1 text-sm">
           <div className="font-medium">{position + 1}. {mockup.name}</div>
           <div className="flex items-center gap-x-2">
-            Vùng in: {mockup.quad ? <Badge color="green">đã đặt</Badge> : <Badge color="orange">chưa đặt</Badge>}
+            Vùng in:{" "}
+            {!mockup.quad ? (
+              <Badge color="orange">chưa đặt</Badge>
+            ) : mockup.anchors_confirmed === false ? (
+              <Badge color="orange">tự đoán, cần kiểm tra</Badge>
+            ) : (
+              <Badge color="green">đã đặt</Badge>
+            )}
           </div>
           <div className="text-ui-fg-subtle">Vùng áo nhận diện: {coverage}% ảnh</div>
           <div className="text-ui-fg-subtle">Lớp che (tay, tóc): {mockup.has_occlusion ? "có" : "không"}</div>
@@ -81,16 +89,11 @@ export function MockupCard({ mockup, spec, position, total, onMove, onRemove, on
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Button
-          size="small"
-          variant="secondary"
-          disabled={busy || !spec}
-          onClick={() => void run(() => fitQuad(mockup.id, spec as FitSpec))}
-        >
-          Đặt vùng in đúng kích thước
+        <Button size="small" variant="secondary" disabled={busy || !spec} onClick={() => setTool(tool === "anchor" ? null : "anchor")}>
+          Đặt 3 điểm chuẩn
         </Button>
         <Button size="small" variant="secondary" disabled={busy} onClick={() => (tool === "quad" ? setTool(null) : void openEditor())}>
-          Chỉnh 4 góc vùng in
+          Tinh chỉnh 4 góc (phối cảnh)
         </Button>
         <Button size="small" variant="secondary" disabled={busy} onClick={() => setTool(tool === "mask" ? null : "mask")}>
           Khoanh vùng áo
@@ -130,6 +133,17 @@ export function MockupCard({ mockup, spec, position, total, onMove, onRemove, on
         </div>
       </details>
 
+      {tool === "anchor" && (
+        <AnchorEditor
+          mockup={mockup}
+          spec={spec}
+          onSaved={(m) => {
+            onChanged(m)
+            setTool(null)
+          }}
+          onClose={() => setTool(null)}
+        />
+      )}
       {tool === "quad" && (
         <QuadEditor
           mockup={mockup}

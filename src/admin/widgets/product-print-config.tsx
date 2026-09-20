@@ -12,7 +12,7 @@ import { MockupSide } from "../components/print-config/MockupSide"
 import { PrintAreaSummary, printAreaError } from "../components/print-config/PrintAreaSummary"
 import { SizeChartEditor } from "../components/print-config/SizeChartEditor"
 import { listMockups, saveProductPrintConfig, type Mockup } from "../lib/api"
-import { defaultReferenceSize, fitSpec } from "../lib/fit-spec"
+import { fitSpec } from "../lib/fit-spec"
 
 function validate(config: PrintConfigMeta): string | null {
   const sizes = config.size_chart.map((r) => r.size.trim().toLowerCase())
@@ -39,8 +39,6 @@ const PrintConfigWidget = ({ data: product }: DetailWidgetProps<AdminProduct>) =
   const [mockups, setMockups] = useState<Mockup[]>([])
   const [mockupError, setMockupError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
-  // The size worn in the mockup photos; it fixes the scale between millimetres and pixels
-  const [refSize, setRefSize] = useState("")
 
   useEffect(() => {
     listMockups().then(setMockups).catch(() => setMockupError("Không kết nối được service render (cổng 8001)"))
@@ -49,7 +47,6 @@ const PrintConfigWidget = ({ data: product }: DetailWidgetProps<AdminProduct>) =
   const error = validate(config)
   const setMockupsFor = (side: "front" | "back", ids: string[]) =>
     setConfig((c) => ({ ...c, mockups: { ...c.mockups, [side]: ids } }))
-  const referenceSize = config.size_chart.some((r) => r.size === refSize) ? refSize : defaultReferenceSize(config)
   const upsertMockup = (m: Mockup) =>
     setMockups((list) => (list.some((x) => x.id === m.id) ? list.map((x) => (x.id === m.id ? m : x)) : [m, ...list]))
 
@@ -108,18 +105,6 @@ const PrintConfigWidget = ({ data: product }: DetailWidgetProps<AdminProduct>) =
           <p className="text-ui-fg-error text-sm">{mockupError}</p>
         ) : (
           <div className="flex flex-col gap-y-4">
-            <label className="flex items-center gap-x-2 text-sm">
-              <span className="text-ui-fg-subtle">Size của chiếc áo trong ảnh mockup:</span>
-              <select
-                className="bg-ui-bg-field h-8 rounded-md border px-2 text-sm"
-                value={referenceSize}
-                onChange={(e) => setRefSize(e.target.value)}
-              >
-                {config.size_chart.map((r) => (
-                  <option key={r.size} value={r.size}>{r.size}</option>
-                ))}
-              </select>
-            </label>
             <div className="grid gap-4 lg:grid-cols-2">
               {(["front", "back"] as const).map((side) => (
                 <MockupSide
@@ -127,7 +112,7 @@ const PrintConfigWidget = ({ data: product }: DetailWidgetProps<AdminProduct>) =
                   side={side}
                   ids={config.mockups?.[side] ?? []}
                   mockups={mockups}
-                  spec={fitSpec(config, side, referenceSize)}
+                  spec={fitSpec(config, side)}
                   onIds={(ids) => setMockupsFor(side, ids)}
                   onMockupChanged={upsertMockup}
                 />

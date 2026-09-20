@@ -1,6 +1,6 @@
 import { useState } from "react"
 import type { DesignSide } from "@tshirt-platform/shared"
-import { fitQuad, SIDE_LABEL, uploadMockup, type FitSpec, type Mockup } from "../../lib/api"
+import { placeFromGuess, SIDE_LABEL, uploadMockup, type FitSpec, type Mockup } from "../../lib/api"
 import { MockupCard } from "./MockupCard"
 
 type Props = {
@@ -34,7 +34,7 @@ export function MockupSide({ side, ids, mockups, spec, onIds, onMockupChanged }:
       onIds([...ids, m.id])
       if (spec) {
         try {
-          m = await fitQuad(m.id, spec)
+          m = await placeFromGuess(m.id, spec)
           onMockupChanged(m)
         } catch (e) {
           setError(e instanceof Error ? `Chưa đặt được vùng in: ${e.message}` : "Chưa đặt được vùng in")
