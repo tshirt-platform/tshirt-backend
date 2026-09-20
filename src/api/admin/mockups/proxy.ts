@@ -73,6 +73,8 @@ export function templateRoute(
       res.status(404).json({ message: "Template not found" })
       return
     }
-    await forward(req, res, `/templates/${id}${suffix}`, method, body)
+    // The query string goes along (?hex=..&width=..); the service validates it
+    const query = req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : ""
+    await forward(req, res, `/templates/${id}${suffix}${query}`, method, body)
   }
 }
