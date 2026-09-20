@@ -5,11 +5,13 @@ import {
   fitQuad,
   mockupImageUrl,
   replaceMaskLayer,
+  saveCurve,
   saveMaskOutline,
   saveOcclusionOutline,
   type FitSpec,
   type Mockup,
 } from "../../lib/api"
+import { CurveControls } from "./CurveControls"
 import { OutlineEditor } from "./OutlineEditor"
 import { QuadEditor } from "./QuadEditor"
 
@@ -102,6 +104,8 @@ export function MockupCard({ mockup, spec, position, total, onMove, onRemove, on
           </Button>
         )}
       </div>
+
+      <CurveControls mockup={mockup} disabled={busy} onSave={(wrap, yaw) => void run(() => saveCurve(mockup.id, wrap, yaw))} />
 
       <details className="text-sm">
         <summary className="text-ui-fg-subtle cursor-pointer">Nâng cao: thay mask hoặc lớp che (ảnh người mẫu)</summary>
