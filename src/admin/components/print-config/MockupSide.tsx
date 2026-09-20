@@ -8,12 +8,13 @@ type Props = {
   ids: string[]
   mockups: Mockup[]
   spec: FitSpec | null
+  colors: { name: string; hex: string }[]
   onIds: (ids: string[]) => void
   onMockupChanged: (m: Mockup) => void
 }
 
 /** The preview photos of one side, in the order the storefront shows them */
-export function MockupSide({ side, ids, mockups, spec, onIds, onMockupChanged }: Props) {
+export function MockupSide({ side, ids, mockups, spec, colors, onIds, onMockupChanged }: Props) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const chosen = ids.map((id) => mockups.find((m) => m.id === id)).filter((m): m is Mockup => Boolean(m))
@@ -61,6 +62,7 @@ export function MockupSide({ side, ids, mockups, spec, onIds, onMockupChanged }:
           key={m.id}
           mockup={m}
           spec={spec}
+          colors={colors}
           position={i}
           total={chosen.length}
           onMove={(d) => move(i, d)}

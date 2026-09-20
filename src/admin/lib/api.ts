@@ -124,6 +124,9 @@ export async function deleteMockup(id: string): Promise<void> {
 }
 
 export const mockupImageUrl = (id: string, version: number) => `/admin/mockups/${id}/image?v=${version}`
+/** A ready-made sample design on the photo, in a garment colour (hex like #F4F4F0) */
+export const mockupSampleUrl = (id: string, version: number, hex: string, width = 560) =>
+  `/admin/mockups/${id}/sample?hex=${encodeURIComponent(hex)}&width=${width}&v=${version}`
 export const mockupMaskUrl = (id: string, version: number) => `/admin/mockups/${id}/mask?v=${version}`
 
 export async function saveProductPrintConfig(

@@ -15,12 +15,14 @@ import { AnchorEditor } from "./AnchorEditor"
 import { CurveControls } from "./CurveControls"
 import { OutlineEditor } from "./OutlineEditor"
 import { QuadEditor } from "./QuadEditor"
+import { SamplePreview } from "./SamplePreview"
 
 type Tool = "anchor" | "quad" | "mask" | "occlusion" | null
 
 type Props = {
   mockup: Mockup
   spec: FitSpec | null
+  colors: { name: string; hex: string }[]
   position: number
   total: number
   onMove: (delta: -1 | 1) => void
@@ -29,7 +31,7 @@ type Props = {
 }
 
 /** One preview photo of a side: where the print sits on it and how it is cut out */
-export function MockupCard({ mockup, spec, position, total, onMove, onRemove, onChanged }: Props) {
+export function MockupCard({ mockup, spec, colors, position, total, onMove, onRemove, onChanged }: Props) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [tool, setTool] = useState<Tool>(null)
@@ -61,8 +63,14 @@ export function MockupCard({ mockup, spec, position, total, onMove, onRemove, on
   return (
     <div className="flex flex-col gap-y-2 rounded-lg border p-3">
       <div className="flex items-start gap-x-3">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={mockupImageUrl(mockup.id, mockup.version)} alt={mockup.name} className="h-32 rounded border" />
+        <div className="flex flex-col gap-y-1">
+          <SamplePreview mockup={mockup} colors={colors} />
+          <details className="text-xs">
+            <summary className="text-ui-fg-subtle cursor-pointer">Ảnh gốc</summary>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={mockupImageUrl(mockup.id, mockup.version)} alt={mockup.name} className="mt-1 h-32 rounded border" />
+          </details>
+        </div>
         <div className="flex flex-1 flex-col gap-y-1 text-sm">
           <div className="font-medium">{position + 1}. {mockup.name}</div>
           <div className="flex items-center gap-x-2">

@@ -113,6 +113,7 @@ const PrintConfigWidget = ({ data: product }: DetailWidgetProps<AdminProduct>) =
                   ids={config.mockups?.[side] ?? []}
                   mockups={mockups}
                   spec={fitSpec(config, side)}
+                  colors={config.colors}
                   onIds={(ids) => setMockupsFor(side, ids)}
                   onMockupChanged={upsertMockup}
                 />
