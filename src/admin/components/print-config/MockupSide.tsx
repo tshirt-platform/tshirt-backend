@@ -1,6 +1,6 @@
 import { useState } from "react"
 import type { DesignSide } from "@tshirt-platform/shared"
-import { placeFromGuess, SIDE_LABEL, uploadMockup, type FitSpec, type Mockup } from "../../lib/api"
+import { autoSetup, SIDE_LABEL, uploadMockup, type FitSpec, type Mockup } from "../../lib/api"
 import { MockupCard } from "./MockupCard"
 
 type Props = {
@@ -9,12 +9,13 @@ type Props = {
   mockups: Mockup[]
   spec: FitSpec | null
   colors: { name: string; hex: string }[]
+  aiEnabled: boolean
   onIds: (ids: string[]) => void
   onMockupChanged: (m: Mockup) => void
 }
 
 /** The preview photos of one side, in the order the storefront shows them */
-export function MockupSide({ side, ids, mockups, spec, colors, onIds, onMockupChanged }: Props) {
+export function MockupSide({ side, ids, mockups, spec, colors, aiEnabled, onIds, onMockupChanged }: Props) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const chosen = ids.map((id) => mockups.find((m) => m.id === id)).filter((m): m is Mockup => Boolean(m))
@@ -35,8 +36,9 @@ export function MockupSide({ side, ids, mockups, spec, colors, onIds, onMockupCh
       onIds([...ids, m.id])
       if (spec) {
         try {
-          m = await placeFromGuess(m.id, spec)
-          onMockupChanged(m)
+          const done = await autoSetup(m.id, spec, aiEnabled)
+          onMockupChanged(done.mockup)
+          if (done.note) setError(done.note)
         } catch (e) {
           setError(e instanceof Error ? `Chưa đặt được vùng in: ${e.message}` : "Chưa đặt được vùng in")
         }
@@ -63,6 +65,7 @@ export function MockupSide({ side, ids, mockups, spec, colors, onIds, onMockupCh
           mockup={m}
           spec={spec}
           colors={colors}
+          aiEnabled={aiEnabled}
           position={i}
           total={chosen.length}
           onMove={(d) => move(i, d)}

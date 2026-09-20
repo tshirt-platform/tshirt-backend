@@ -11,7 +11,7 @@ import { ColorsEditor } from "../components/print-config/ColorsEditor"
 import { MockupSide } from "../components/print-config/MockupSide"
 import { PrintAreaSummary, printAreaError } from "../components/print-config/PrintAreaSummary"
 import { SizeChartEditor } from "../components/print-config/SizeChartEditor"
-import { listMockups, saveProductPrintConfig, type Mockup } from "../lib/api"
+import { getVisionStatus, listMockups, saveProductPrintConfig, type Mockup, type VisionStatus } from "../lib/api"
 import { fitSpec } from "../lib/fit-spec"
 
 function validate(config: PrintConfigMeta): string | null {
@@ -37,10 +37,12 @@ const PrintConfigWidget = ({ data: product }: DetailWidgetProps<AdminProduct>) =
     structuredClone(stored ?? DEFAULT_PRINT_CONFIG_META)
   )
   const [mockups, setMockups] = useState<Mockup[]>([])
+  const [vision, setVision] = useState<VisionStatus>({ enabled: false, model: null })
   const [mockupError, setMockupError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
+    getVisionStatus().then(setVision).catch(() => setVision({ enabled: false, model: null }))
     listMockups().then(setMockups).catch(() => setMockupError("Không kết nối được service render (cổng 8001)"))
   }, [])
 
@@ -105,6 +107,11 @@ const PrintConfigWidget = ({ data: product }: DetailWidgetProps<AdminProduct>) =
           <p className="text-ui-fg-error text-sm">{mockupError}</p>
         ) : (
           <div className="flex flex-col gap-y-4">
+            <p className="text-ui-fg-subtle text-sm">
+              {vision.enabled
+                ? `Tải ảnh lên là xong: AI (${vision.model}) tự tách áo, tìm điểm chuẩn và góc xoay. Bản xem thử bên dưới là kết quả thật; chỉ chỉnh tay khi thấy sai.`
+                : "Tải ảnh lên, hệ thống tự đặt vùng in theo mask. Muốn AI tự phân tích cho chính xác hơn: điền VISION_API_KEY và VISION_MODEL vào tshirt-render/.env rồi khởi động lại service render."}
+            </p>
             <div className="grid gap-4 lg:grid-cols-2">
               {(["front", "back"] as const).map((side) => (
                 <MockupSide
@@ -114,6 +121,7 @@ const PrintConfigWidget = ({ data: product }: DetailWidgetProps<AdminProduct>) =
                   mockups={mockups}
                   spec={fitSpec(config, side)}
                   colors={config.colors}
+                  aiEnabled={vision.enabled}
                   onIds={(ids) => setMockupsFor(side, ids)}
                   onMockupChanged={upsertMockup}
                 />

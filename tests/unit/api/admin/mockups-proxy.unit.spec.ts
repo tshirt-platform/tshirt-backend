@@ -1,5 +1,6 @@
 import { Readable } from "node:stream"
 import { forward, isValidTemplateId, templateRoute } from "../../../../src/api/admin/mockups/proxy"
+import { GET as visionStatus } from "../../../../src/api/admin/mockup-ai/route"
 
 const fetchMock = jest.fn()
 const realFetch = global.fetch
@@ -134,5 +135,40 @@ describe("templateRoute", () => {
     await templateRoute("", "DELETE")(makeReq({ params: { id: "../../health" } }) as never, res as never)
     expect(res.status).toHaveBeenCalledWith(404)
     expect(fetchMock).not.toHaveBeenCalled()
+  })
+})
+
+describe("AI analysis routes", () => {
+  it("posts the print size to the analyze endpoint of a valid template", async () => {
+    fetchMock.mockResolvedValue(new Response("{}"))
+    const body = { print_width_mm: 264, print_height_mm: 336, top_offset_mm: 130, body_width_mm: 480 }
+    await templateRoute("/analyze", "POST", "json")(makeReq({ params: { id: "2ea1b397cc73" }, body }) as never, makeRes() as never)
+    expect(fetchMock.mock.calls[0][0]).toBe("http://localhost:8001/templates/2ea1b397cc73/analyze")
+    expect(fetchMock.mock.calls[0][1].method).toBe("POST")
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual(body)
+  })
+
+  it("does not analyze an id that could rewrite the path", async () => {
+    const res = makeRes()
+    await templateRoute("/analyze", "POST", "json")(makeReq({ params: { id: "../x" } }) as never, res as never)
+    expect(res.status).toHaveBeenCalledWith(404)
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it("asks the render service whether the AI is on, sending the service key when there is one", async () => {
+    process.env.RENDER_API_KEY = "render-secret"
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ enabled: true, model: "m" }), { headers: { "content-type": "application/json" } }))
+    const res = makeRes()
+    await visionStatus(makeReq() as never, res as never)
+    expect(fetchMock.mock.calls[0][0]).toBe("http://localhost:8001/vision/status")
+    expect(fetchMock.mock.calls[0][1].headers["X-Api-Key"]).toBe("render-secret")
+    expect(res.status).toHaveBeenCalledWith(200)
+  })
+
+  it("reports an unreachable render service as 502, not as an AI that is off", async () => {
+    fetchMock.mockRejectedValue(new TypeError("fetch failed"))
+    const res = makeRes()
+    await visionStatus(makeReq() as never, res as never)
+    expect(res.status).toHaveBeenCalledWith(502)
   })
 })

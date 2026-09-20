@@ -13,6 +13,8 @@ export type Mockup = {
   wrap_deg?: number
   yaw_deg?: number
   anchors_confirmed?: boolean
+  /** Set when a vision model read the photo */
+  analysis?: { model: string; confidence: number; issues: string[]; view: string; worn_on_body: boolean; yaw_deg: number }
   version: number
 }
 
@@ -70,6 +72,42 @@ export async function saveAnchors(id: string, anchors: Anchors, spec: FitSpec, s
     body: JSON.stringify({ ...anchors, ...spec, suggested }),
   })
   return res.json()
+}
+
+export type VisionStatus = { enabled: boolean; model: string | null }
+
+export async function getVisionStatus(): Promise<VisionStatus> {
+  return (await call("/admin/mockup-ai")).json()
+}
+
+/** The vision model reads the photo: shirt, reference points, turn of the body, what hides it */
+export async function analyzeMockup(id: string, spec: FitSpec): Promise<Mockup> {
+  const res = await call(`/admin/mockups/${id}/analyze`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(spec),
+  })
+  return res.json()
+}
+
+/**
+ * Sets a fresh photo up by itself: the vision model when it is on, otherwise (or when the model
+ * cannot use the photo) the automatic guess from the mask. `note` says what happened.
+ */
+export async function autoSetup(
+  id: string,
+  spec: FitSpec,
+  aiEnabled: boolean
+): Promise<{ mockup: Mockup; note: string | null }> {
+  if (aiEnabled) {
+    try {
+      return { mockup: await analyzeMockup(id, spec), note: null }
+    } catch (e) {
+      const reason = e instanceof Error ? e.message : "lỗi không rõ"
+      return { mockup: await placeFromGuess(id, spec), note: `AI chưa dùng được ảnh này (${reason}). Đã đặt tạm theo mask, hãy kiểm tra.` }
+    }
+  }
+  return { mockup: await placeFromGuess(id, spec), note: null }
 }
 
 /** A fresh photo: put the print where the mask says the body is, and mark it as not yet checked */
