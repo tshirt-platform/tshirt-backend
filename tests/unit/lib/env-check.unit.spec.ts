@@ -1,4 +1,4 @@
-import { assertValidEnv, checkEnv } from "../../../src/lib/env-check"
+import { assertValidEnv, checkEnv, DEFAULT_SESSION_HOURS, sessionHours } from "../../../src/lib/env-check"
 
 const good: NodeJS.ProcessEnv = {
   NODE_ENV: "production",
@@ -73,5 +73,33 @@ describe("assertValidEnv", () => {
     const log = jest.fn()
     expect(() => assertValidEnv({ NODE_ENV: "development", DATABASE_URL: "" }, log)).not.toThrow()
     expect(log).toHaveBeenCalledWith(expect.stringContaining("DATABASE_URL"))
+  })
+})
+
+describe("admin session lifetime", () => {
+  it("keeps Medusa's 10 hours when nothing is set", () => {
+    expect(sessionHours({})).toBe(DEFAULT_SESSION_HOURS)
+    expect(sessionHours({ ADMIN_SESSION_TTL_HOURS: "  " })).toBe(DEFAULT_SESSION_HOURS)
+  })
+
+  it("reads a number of hours", () => {
+    expect(sessionHours({ ADMIN_SESSION_TTL_HOURS: "336" })).toBe(336)
+    expect(sessionHours({ ADMIN_SESSION_TTL_HOURS: "1.5" })).toBe(1.5)
+  })
+
+  it.each(["abc", "0", "-5", "10000", "Infinity"])("falls back to the default for %s", (value) => {
+    expect(sessionHours({ ADMIN_SESSION_TTL_HOURS: value })).toBe(DEFAULT_SESSION_HOURS)
+    expect(checkEnv({ ...good, ADMIN_SESSION_TTL_HOURS: value }).warnings.join()).toContain("ADMIN_SESSION_TTL_HOURS")
+  })
+
+  it("allows a day in production and refuses more", () => {
+    expect(checkEnv({ ...good, ADMIN_SESSION_TTL_HOURS: "24" })).toEqual({ errors: [], warnings: [] })
+    expect(checkEnv({ ...good, ADMIN_SESSION_TTL_HOURS: "336" }).errors.join()).toContain("development only")
+  })
+
+  it("only warns about a long session in development", () => {
+    const dev = checkEnv({ ...good, NODE_ENV: "development", ADMIN_SESSION_TTL_HOURS: "336" })
+    expect(dev.errors.join()).not.toContain("ADMIN_SESSION_TTL_HOURS")
+    expect(dev.warnings.join()).toContain("development only")
   })
 })
