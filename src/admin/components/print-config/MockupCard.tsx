@@ -14,6 +14,7 @@ import {
 } from "../../lib/api"
 import { AnchorEditor } from "./AnchorEditor"
 import { CurveControls } from "./CurveControls"
+import { LayerStack } from "./LayerStack"
 import { OutlineEditor } from "./OutlineEditor"
 import { QuadEditor } from "./QuadEditor"
 import { SamplePreview } from "./SamplePreview"
@@ -94,6 +95,12 @@ export function MockupCard({ mockup, spec, colors, aiEnabled, position, total, o
               {mockup.analysis.issues.map((i) => <li key={i}>{i}</li>)}
             </ul>
           )}
+          {mockup.analysis?.points_from === "vision" && mockup.anchors_confirmed === false && (
+            <div className="text-ui-fg-error">
+              Ảnh này không đo được bề ngang ngực (tay che mất), nên kích thước hình in chỉ là
+              phỏng đoán. Hãy dùng “Chỉnh tay 3 điểm chuẩn”.
+            </div>
+          )}
           <div className="text-ui-fg-subtle">Vùng áo nhận diện: {coverage}% ảnh</div>
           <div className="text-ui-fg-subtle">Lớp che (tay, tóc): {mockup.has_occlusion ? "có" : "không"}</div>
           {suspicious && (
@@ -133,6 +140,13 @@ export function MockupCard({ mockup, spec, colors, aiEnabled, position, total, o
       </div>
 
       <CurveControls mockup={mockup} disabled={busy} onSave={(wrap, yaw) => void run(() => saveCurve(mockup.id, wrap, yaw))} />
+
+      <details className="text-sm">
+        <summary className="text-ui-fg-subtle cursor-pointer">Các lớp của ảnh</summary>
+        <div className="mt-2">
+          <LayerStack mockup={mockup} onChanged={onChanged} />
+        </div>
+      </details>
 
       <details className="text-sm">
         <summary className="text-ui-fg-subtle cursor-pointer">Nâng cao: thay mask hoặc lớp che (ảnh người mẫu)</summary>

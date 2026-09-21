@@ -1,6 +1,8 @@
 import { Readable } from "node:stream"
 import { forward, isValidTemplateId, templateRoute } from "../../../../src/api/admin/mockups/proxy"
 import { GET as visionStatus } from "../../../../src/api/admin/mockup-ai/route"
+import { GET as listLayers, POST as rebuildLayers } from "../../../../src/api/admin/mockups/[id]/layers/route"
+import { GET as layerImage, PUT as setLayer } from "../../../../src/api/admin/mockups/[id]/layers/[name]/route"
 
 const fetchMock = jest.fn()
 const realFetch = global.fetch
@@ -133,6 +135,49 @@ describe("templateRoute", () => {
   it("never forwards an id that could rewrite the path", async () => {
     const res = makeRes()
     await templateRoute("", "DELETE")(makeReq({ params: { id: "../../health" } }) as never, res as never)
+    expect(res.status).toHaveBeenCalledWith(404)
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+})
+
+describe("layer routes", () => {
+  const id = "2ea1b397cc73"
+
+  it("lists the layers and re-splits the photo", async () => {
+    fetchMock.mockResolvedValue(new Response("[]"))
+    await listLayers(makeReq({ params: { id }, url: `/admin/mockups/${id}/layers` }) as never, makeRes() as never)
+    expect(fetchMock.mock.calls[0][0]).toBe(`http://localhost:8001/templates/${id}/layers`)
+    expect(fetchMock.mock.calls[0][1].method).toBe("GET")
+
+    await rebuildLayers(makeReq({ params: { id }, url: `/admin/mockups/${id}/layers` }) as never, makeRes() as never)
+    expect(fetchMock.mock.calls[1][1].method).toBe("POST")
+  })
+
+  it("draws one named layer", async () => {
+    fetchMock.mockResolvedValue(new Response("png"))
+    await layerImage(makeReq({ params: { id, name: "occ-00" } }) as never, makeRes() as never)
+    expect(fetchMock.mock.calls[0][0]).toBe(`http://localhost:8001/templates/${id}/layers/occ-00`)
+  })
+
+  it("switches a part off with a JSON body", async () => {
+    fetchMock.mockResolvedValue(new Response("{}"))
+    await setLayer(makeReq({ params: { id, name: "occ-01" }, body: { enabled: false } }) as never, makeRes() as never)
+    expect(fetchMock.mock.calls[0][0]).toBe(`http://localhost:8001/templates/${id}/layers/occ-01`)
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ enabled: false })
+  })
+
+  it("never forwards a layer name that could rewrite the path", async () => {
+    for (const name of ["../../health", "occ-00/x", "", "OCC-00", "a".repeat(21), "-occ"]) {
+      const res = makeRes()
+      await layerImage(makeReq({ params: { id, name } }) as never, res as never)
+      expect(res.status).toHaveBeenCalledWith(404)
+    }
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it("does not draw a layer of an id that could rewrite the path", async () => {
+    const res = makeRes()
+    await layerImage(makeReq({ params: { id: "../x", name: "garment" } }) as never, res as never)
     expect(res.status).toHaveBeenCalledWith(404)
     expect(fetchMock).not.toHaveBeenCalled()
   })
