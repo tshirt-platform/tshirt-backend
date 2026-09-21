@@ -14,7 +14,18 @@ export type Mockup = {
   yaw_deg?: number
   anchors_confirmed?: boolean
   /** Set when a vision model read the photo */
-  analysis?: { model: string; confidence: number; issues: string[]; view: string; worn_on_body: boolean; yaw_deg: number }
+  analysis?: {
+    model: string
+    confidence: number
+    issues: string[]
+    view: string
+    worn_on_body: boolean
+    yaw_deg: number
+    /** Where the garment outline came from, and where the three reference points came from.
+     * "vision" points are a guess: the photo did not show the chest's width. */
+    shapes_from?: string
+    points_from?: "garment" | "vision"
+  }
   version: number
 }
 
@@ -156,6 +167,41 @@ export async function replaceMaskLayer(
   form.set("image", file)
   return (await call(`/admin/mockups/${id}/${layer}`, { method: "PUT", body: form })).json()
 }
+
+/** One layer the photo was taken apart into. An occluding part can be switched off; the rest cannot. */
+export type Layer = {
+  name: string
+  kind: "photo" | "garment" | "shading" | "creases" | "print" | "arm" | "hair" | "bag" | "scarf" | "manual" | "other"
+  z: number
+  enabled: boolean
+  fixed: boolean
+  /** False for the print layer before a print area is set: there is nothing to draw yet */
+  ready: boolean
+  side?: "left" | "right"
+  area?: number
+  bbox?: number[]
+}
+
+export async function listLayers(id: string): Promise<Layer[]> {
+  return (await call(`/admin/mockups/${id}/layers`)).json()
+}
+
+/** Splits the photo into layers again with the local model. The print area is left alone. */
+export async function rebuildLayers(id: string): Promise<Mockup> {
+  return (await call(`/admin/mockups/${id}/layers`, { method: "POST" })).json()
+}
+
+export async function setLayerEnabled(id: string, name: string, enabled: boolean): Promise<Mockup> {
+  const res = await call(`/admin/mockups/${id}/layers/${name}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ enabled }),
+  })
+  return res.json()
+}
+
+export const mockupLayerUrl = (id: string, name: string, version: number) =>
+  `/admin/mockups/${id}/layers/${name}?v=${version}`
 
 export async function deleteMockup(id: string): Promise<void> {
   await call(`/admin/mockups/${id}`, { method: "DELETE" })
